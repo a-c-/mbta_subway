@@ -83,18 +83,18 @@ def set_minutes(time_in, station):
 
 
 
-def print_stations(stations, f_name):
+def print_stations(stations):
     for station in stations:
-        print(' ', file = f_name)
-        print(station, "Predictions:", file = f_name)
+        print(' ')
+        print(station, "Predictions:")
 
         for dest in stations[station]:
             # if there are predictions for the direction at the station...
             if stations[station][dest]:
-                print("Trains to", dest, "approaching in ", file = f_name)
+                print("Trains to", dest, "approaching in ")
 
                 for time in stations[station][dest]:
-                    print(time[0], "minutes", file = f_name)
+                    print(time[0], "minutes")
 
 
 
@@ -215,8 +215,8 @@ def main():
             # build station prediction data structure
             build_stations(line_color, data2)
 
-            # # print information about arrival predictions
-            # print_stations(line_color, f)
+            # print information about arrival predictions
+            print_stations(line_color)
 
             # get delay information
             check_delays(line_color, time1)
@@ -235,9 +235,16 @@ def main():
                         for delay_time in delays[station][destination]:
                             dw.writerow([date_display, time_display,
                                         key, station, destination, delay_time])
-            delays.clear()
+        # clear delays dictionary
+        for station in delays:
+            for destination in delays[station]:
+                del delays[station][destination][0:]
 
-        lines.clear()
+        # clear lines dictionary
+        for color in lines:
+            for station in lines[color]:
+                for destination in lines[color][station]:
+                    del lines[color][station][destination][0:]
 
         save_alerts('/Users/ashleycuster/Desktop/csv/{}_alerts.csv'.format(name))
 
