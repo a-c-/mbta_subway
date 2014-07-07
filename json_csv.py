@@ -17,15 +17,6 @@ from gtfs_realtime_pb2 import FeedMessage
 # the provided direction
 
 
-lines = {
-    'red': defaultdict(lambda: defaultdict(list)),
-    'blue': defaultdict(lambda: defaultdict(list)),
-    'orange': defaultdict(lambda: defaultdict(list)),
-}
-
-# dictionary to store delay information
-delays = defaultdict(lambda: defaultdict(list))
-
 # schedule delay thresholds
 schedule_thresholds = {
     # early am: 2:30 - 6:59
@@ -48,7 +39,6 @@ branches = ['JFK/UMass', 'Savin Hill', 'Fields Corner', 'Shawmut', 'Ashmont',
             'Quincy Adams', 'Braintree']
 
 branch_addition = 5
-
 
 def set_minutes(time_in, station):
     # time of day adjustment
@@ -104,6 +94,9 @@ def print_stations(stations):
 
 # find a way to save only if delay > 15 min?
 def check_delays(stations, time_in):
+    # dictionary to store delay information
+    delays = defaultdict(lambda: defaultdict(list))
+
     for station in stations:
         for dest in stations[station]:
             # if there are predictions for the direction at the station...
@@ -123,10 +116,13 @@ def check_delays(stations, time_in):
                     if delay > minutes:
                         # save info to delays dictionary
                         delays[station][dest].append(delay)
+    return delays
 
 
 
-def build_stations(stations, data):
+def build_stations(data):
+    stations = defaultdict(lambda: defaultdict(list))
+
     # for each train on the red line, store the predicted arrival time with the
     # station the train is predicted to arrive in. Passengers can check upcoming
     # train arrival times for each station
@@ -138,6 +134,7 @@ def build_stations(stations, data):
                                                                 train_id))
             stations[ y['Stop'] ][ x['Destination'] ].sort()
             # seconds sometimes are less than 0 in json data...
+    return stations
 
 
 def save_alerts(file_name):
@@ -201,8 +198,9 @@ def main():
     # runs for 2 hours
     while (count < 120):
 
-        for key in lines.keys():
-            line_color = lines[key]
+
+
+        for key in ('red', 'blue', 'orange'):
             link_to_data = "http://developer.mbta.com/lib/rthr/{}.json".format(key)
 
             # open data
@@ -213,13 +211,13 @@ def main():
             time1 = data2['TripList']['CurrentTime']
 
             # build station prediction data structure
-            build_stations(line_color, data2)
+            stations = build_stations(data2)
 
-            # print information about arrival predictions
-            print_stations(line_color)
+            # # print information about arrival predictions
+            # print_stations(line_color)
 
             # get delay information
-            check_delays(line_color, time1)
+            delays = check_delays(stations, time1)
 
             d = datetime.fromtimestamp(time1)
             eastern = timezone('US/Eastern')
@@ -230,21 +228,12 @@ def main():
             # # write csv file
             with open(csv_file, 'ab+') as working_file:
                 dw = csv.writer(working_file)
-                for station in delays:
-                    for destination in delays[station]:
-                        for delay_time in delays[station][destination]:
+                for station, destinations in delays.items():
+                    for destination, delay_times in destinations.items():
+                        for delay_time in delay_times:
                             dw.writerow([date_display, time_display,
                                         key, station, destination, delay_time])
-        # clear delays dictionary
-        for station in delays:
-            for destination in delays[station]:
-                del delays[station][destination][0:]
 
-        # clear lines dictionary
-        for color in lines:
-            for station in lines[color]:
-                for destination in lines[color][station]:
-                    del lines[color][station][destination][0:]
 
         save_alerts('/Users/ashleycuster/Desktop/csv/{}_alerts.csv'.format(name))
 
