@@ -40,11 +40,22 @@ branches = ['JFK/UMass', 'Savin Hill', 'Fields Corner', 'Shawmut', 'Ashmont',
 
 branch_addition = 5
 
+eastern = timezone('US/Eastern')
+
+
+
+def format_time(time_in):
+    d = datetime.fromtimestamp(time_in)
+    d_east = eastern.localize(d)
+    date_out = d_east.strftime('%Y%m%d')
+    time_out = d_east.strftime('%H%M%S')
+    return date_out, time_out
+
+
 def set_minutes(time_in, station):
     # time of day adjustment
     # convert epoch time_in to readable time
     d = datetime.fromtimestamp(time_in)
-    eastern = timezone('US/Eastern')
     d_east = eastern.localize(d)
     hour_in = d_east.hour + (d_east.minute/60)
     # get the day from the time, monday - sunday : 0 - 6
@@ -137,18 +148,19 @@ def build_stations(data):
     return stations
 
 
-def save_alerts(file_name):
+def save_alerts(data_writer):
     data = urllib2.urlopen('http://developer.mbta.com/lib/GTRTFS/Alerts/Alerts.pb').read()
 
     alerts = FeedMessage.FromString(data)
 
     # time output
     alert_time = alerts.header.timestamp
-    d = datetime.fromtimestamp(alert_time)
-    eastern = timezone('US/Eastern')
-    d_east = eastern.localize(d)
-    date_display = d_east.strftime('%Y%m%d')
-    time_display = d_east.strftime('%H%M%S')
+    # d = datetime.fromtimestamp(alert_time)
+    # eastern = timezone('US/Eastern')
+    # d_east = eastern.localize(d)
+    # date_display = d_east.strftime('%Y%m%d')
+    # time_display = d_east.strftime('%H%M%S')
+    date_display, time_display = format_time(alert_time)
 
     for entity in alerts.entity:
 
@@ -168,37 +180,23 @@ def save_alerts(file_name):
 
         if color and (entity.alert.effect != detour):
             text = entity.alert.header_text.translation[0].text
-            with open(file_name, 'ab+') as foo:
-                dw = csv.writer(foo)
-                dw.writerow([date_display, time_display, color, text])
+            data_writer.writerow([date_display, time_display, color, text])
 
 
 def main():
     # get file name from user
     name = raw_input('Please name your CSV alerts file: ')
     csv_file = '/Users/ashleycuster/Desktop/csv/{}.csv'.format(name)
-    with open(csv_file, 'wb') as foo:
-        dw = csv.writer(foo)
-        dw.writerow(['Date', 'Time', 'Line', 'Station', 'Destination', 'Delay_Time'])
+    foo = open(csv_file, 'ab+')
+    dw = csv.writer(foo)
+    dw.writerow(['Date', 'Time', 'Line', 'Station', 'Destination', 'Delay_Time'])
 
+    alerts_name = '/Users/ashleycuster/Desktop/csv/{}_alerts.csv'.format(name)
+    alerts_file = open(alerts_name, 'ab+')
+    alerts_writer = csv.writer(alerts_file)
 
-    # # get train line from user
-    # line = raw_input('Check predictions for red, orange, or blue line? ')
-    # # convert user input to all lowercase
-    # line = line.strip().lower()
-    # # error check
-    # if line not in lines:
-    #     print("Error. Please enter 'red', 'orange', or 'blue'")
-    # else:
-    #     # we just use the lines dictionary here
-    #     line_color = lines[line]
-        # and put the color name into the string
-
-    count = 0
-    # runs for 2 hours
-    while (count < 120):
-
-
+    # runs until aborted
+    while (True):
 
         for key in ('red', 'blue', 'orange'):
             link_to_data = "http://developer.mbta.com/lib/rthr/{}.json".format(key)
@@ -219,27 +217,30 @@ def main():
             # get delay information
             delays = check_delays(stations, time1)
 
-            d = datetime.fromtimestamp(time1)
-            eastern = timezone('US/Eastern')
-            d_east = eastern.localize(d)
-            date_display = d_east.strftime('%Y%m%d')
-            time_display = d_east.strftime('%H%M%S')
+            # d = datetime.fromtimestamp(time1)
+            # d_east = eastern.localize(d)
+            # date_display = d_east.strftime('%Y%m%d')
+            # time_display = d_east.strftime('%H%M%S')
+            date_display, time_display = format_time(time1)
 
             # # write csv file
-            with open(csv_file, 'ab+') as working_file:
-                dw = csv.writer(working_file)
-                for station, destinations in delays.items():
-                    for destination, delay_times in destinations.items():
-                        for delay_time in delay_times:
-                            dw.writerow([date_display, time_display,
-                                        key, station, destination, delay_time])
+            for station, destinations in delays.items():
+                for destination, delay_times in destinations.items():
+                    for delay_time in delay_times:
+                        dw.writerow([date_display, time_display,
+                                    key, station, destination, delay_time])
 
 
-        save_alerts('/Users/ashleycuster/Desktop/csv/{}_alerts.csv'.format(name))
+        save_alerts(alerts_writer)
 
-        count += 1
+        foo.flush()
+        alerts_file.flush()
+
         # every one minute
         time.sleep(60)
+
+    foo.close()
+    alerts_file.close()
 
 
 
