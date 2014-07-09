@@ -184,8 +184,9 @@ def save_alerts(data_writer):
 
 
 def main():
+    name = strftime("%b%d_%H%M", gmtime())
     # get file name from user
-    name = raw_input('Please name your CSV alerts file: ')
+    # unique_name = raw_input('Please name your CSV alerts file: ')
     csv_file = '/Users/ashleycuster/Desktop/csv/{}.csv'.format(name)
     foo = open(csv_file, 'ab+')
     dw = csv.writer(foo)
