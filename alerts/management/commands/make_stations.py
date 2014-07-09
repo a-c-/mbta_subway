@@ -5,30 +5,65 @@ import os
 from alerts.models import Agency, CalendarDate, Calendar, FeedInfo, Frequency, Route, Shape, Stop, StopTime, Transfer, Trip
 
 
+# class Command(BaseCommand):
+#     help = 'populates MBTA_GTFS tables'
+#
+#     def handle(self, *args, **options):
+#         gtfs_types = {
+#             Agency: 'agency',
+#             CalendarDate: 'calendar_dates',
+#             Calendar: 'calendar',
+#             FeedInfo: 'feed_info',
+#             Frequency: 'frequencies',
+#             Route: 'routes',
+#             Shape: 'shapes',
+#             Stop: 'stops',
+#             StopTime: 'stop_times',
+#             Transfer: 'transfers',
+#             Trip: 'trips'
+#         }
+#         for Model, filename in gtfs_types.items():
+#             # Model.objects.all().delete()
+#             for row in csv.DictReader(open('/Users/ashleycuster/Desktop/MBTA_GTFS/{}.txt'.format(filename))):
+#                 # print row
+#                 Model.objects.create(**row)
+
+
 class Command(BaseCommand):
-    help = 'populates MBTA_GTFS tables'
+    help = 'populates subway realtime data tables'
+
+    def build_stations(data):
+        stations = defaultdict(lambda: defaultdict(list))
+
+        # for each train on the red line, store the predicted arrival time with the
+        # station the train is predicted to arrive in. Passengers can check upcoming
+        # train arrival times for each station
+        for x in data['TripList']['Trips']:
+            train_id = x['TripID']
+            for y in x['Predictions']:
+                # append mintues(convert seconds) to the list of wait times of the stop
+                stations[ y['Stop'] ][ x['Destination'] ].append((y['Seconds']/60,
+                                                                    train_id))
+                stations[ y['Stop'] ][ x['Destination'] ].sort()
+                # seconds sometimes are less than 0 in json data...
+        return stations
+
+
 
     def handle(self, *args, **options):
-        gtfs_types = {
-            Agency: 'agency',
-            CalendarDate: 'calendar_dates',
-            Calendar: 'calendar',
-            FeedInfo: 'feed_info',
-            Frequency: 'frequencies',
-            Route: 'routes',
-            Shape: 'shapes',
-            Stop: 'stops',
-            StopTime: 'stop_times',
-            Transfer: 'transfers',
-            Trip: 'trips'
-        }
-        for Model, filename in gtfs_types.items():
-            # Model.objects.all().delete()
-            for row in csv.DictReader(open('/Users/ashleycuster/Desktop/MBTA_GTFS/{}.txt'.format(filename))):
-                # print row
-                Model.objects.create(**row)
+        link_to_data = "http://developer.mbta.com/lib/rthr/{}.json".format(key)
 
+        # open data
+        data1 = urllib2.urlopen(link_to_data).read()
+        data2 = json.loads(data1)
 
+        # get time (in epoch)
+        time1 = data2['TripList']['CurrentTime']
+
+        # build station prediction data structure
+        stations = build_stations(data2)
+
+        
 
 
 
