@@ -134,7 +134,17 @@ class Trip(models.Model):
 
 
 # from JSON subway information
+# _________________________________________________________________________
 
+class Info(models.Model):
+    current_time = models.PositiveIntegerField()
+    line = models.CharField(max_length=20)
+
+class Trip(models.Model):
+    trip_id = models.CharField(max_length=20)
+    destination = models.CharField(max_length=50)
+    note = models.CharField(max_length=200)
+    info = models.ForeignKey(Info)
 
 class Position(models.Model):
     timestamp = models.PositiveIntegerField()
@@ -142,22 +152,13 @@ class Position(models.Model):
     latitude = models.DecimalField(max_digits=8, decimal_places=5)
     longitude = models.DecimalField(max_digits=8, decimal_places=5)
     heading = models.PositiveIntegerField()
+    trip = models.ForeignKey(Trip)
 
 class Prediction(models.Model):
     stop_id = models.CharField(max_length=20)
     stop = models.CharField(max_length=20)
     seconds = models.PositiveIntegerField()
-
-class TripItem(models.Model):
-    trip_id = models.CharField(max_length=50)
-    destination = models.CharField(max_length=50)
-    position = models.ForeignKey(Position)
-    predictions = models.ManyToManyField(Prediction)
-
-class TripList(models.Model):
-    current_time = models.PositiveIntegerField()
-    line = models.CharField(max_length=20)
-    trips = models.ManyToManyField(TripItem)
+    trip = models.ForeignKey(Trip)
 
 
 # from GTFS-realtime alerts data
