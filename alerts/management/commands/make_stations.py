@@ -32,21 +32,52 @@ from alerts.models import Agency, CalendarDate, Calendar, FeedInfo, Frequency, R
 class Command(BaseCommand):
     help = 'populates subway realtime data tables'
 
-    def build_stations(data):
-        stations = defaultdict(lambda: defaultdict(list))
+    def log_subway(data):
 
-        # for each train on the red line, store the predicted arrival time with the
-        # station the train is predicted to arrive in. Passengers can check upcoming
-        # train arrival times for each station
-        for x in data['TripList']['Trips']:
-            train_id = x['TripID']
-            for y in x['Predictions']:
-                # append mintues(convert seconds) to the list of wait times of the stop
-                stations[ y['Stop'] ][ x['Destination'] ].append((y['Seconds']/60,
-                                                                    train_id))
-                stations[ y['Stop'] ][ x['Destination'] ].sort()
-                # seconds sometimes are less than 0 in json data...
-        return stations
+        # add data to Info table
+        current_time_in = data['TripList']['CurrentTime']
+        line_in = data['TripList']['Line']
+        Info.objects.create(
+            current_time = current_time_in,
+            line = line_in
+        )
+
+        for trip in data['TripList']['Trips']:
+            trip_id_in = trip['TripID']
+            destination_in = trip['Destination']
+            note_in = trip['Note']
+            #relate to Info object here
+            Trip.objects.create(
+                trip_id = trip_id_in,
+                destination = destination_in,
+                note = note_in
+            )
+
+            for position in trip['Position']:
+                timestamp_in = position['Timestamp']
+                train_in = position['Train']
+                lat_in = position['Lat']
+                lon_in = position['Long']
+                heading_in = position['Heading']
+                # relate to Trip object
+                Position.objects.create(
+                    timestamp = timestamp_in,
+                    train = train_in,
+                    latitude = lat_in,
+                    longitude = lon_in,
+                    heading = heading_in
+                )
+
+            for prediction in trip['Predictions']:
+                stop_id_in = prediction['StopID']
+                stop_in = prediction['Stop']
+                seconds_in = prediction['Seconds']
+                # relate to Trip object
+                Prediction.objects.create(
+                    stop_id = stop_id_in,
+                    stop = stop_in,
+                    seconds = seconds_in
+                )
 
 
 
@@ -61,9 +92,9 @@ class Command(BaseCommand):
         time1 = data2['TripList']['CurrentTime']
 
         # build station prediction data structure
-        stations = build_stations(data2)
+        stations = log_subway(data2)
 
-        
+
 
 
 
