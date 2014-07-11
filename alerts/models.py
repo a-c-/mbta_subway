@@ -140,11 +140,17 @@ class Info(models.Model):
     current_time = models.PositiveIntegerField()
     line = models.CharField(max_length=20)
 
+    def __unicode__(self):
+        return "{} - {}".format(self.line, self.current_time)
+
 class Trip(models.Model):
     trip_id = models.CharField(max_length=20)
     destination = models.CharField(max_length=50)
-    note = models.CharField(max_length=200)
+    note = models.CharField(max_length=200, null=True)
     info = models.ForeignKey(Info)
+
+    def __unicode__(self):
+        return self.destination
 
 class Position(models.Model):
     timestamp = models.PositiveIntegerField()
@@ -154,11 +160,17 @@ class Position(models.Model):
     heading = models.PositiveIntegerField()
     trip = models.ForeignKey(Trip)
 
+    def __unicode__(self):
+        return "{} - {},{}".format(self.train, self.latitude, self.longitude)
+
 class Prediction(models.Model):
     stop_id = models.CharField(max_length=20)
     stop = models.CharField(max_length=20)
     seconds = models.PositiveIntegerField()
     trip = models.ForeignKey(Trip)
+
+    def __unicode__(self):
+        return "{} : {}".format(self.stop, self.seconds)
 
 
 # # from GTFS-realtime alerts data
