@@ -20,17 +20,17 @@ from gtfs_realtime_pb2 import FeedMessage
 # schedule delay thresholds
 schedule_thresholds = {
     # early am: 2:30 - 6:59
-    'early_am': 10,
+    'early_am': 15,
     # am peak: 7:00 - 8:59
-    'am_peak': 10,
+    'am_peak': 15,
     # midday: 9:00 - 15:59
-    'midday': 10,
+    'midday': 15,
     # pm peak: 16:00 - 18:29
-    'pm_peak': 10,
+    'pm_peak': 15,
     # evening: 18:30 - 2:29
-    'evening': 10,
+    'evening': 15,
     # weekend friday 2:30 - monday 2:30
-    'weekend': 10
+    'weekend': 15
 }
 
 # branch stations
